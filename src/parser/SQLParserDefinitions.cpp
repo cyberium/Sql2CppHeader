@@ -102,20 +102,9 @@ namespace SQLParserRule
     )
 }
 
-bool ParseSQLFile(SQLParser::ParsingData &data)
+
+bool ParseSQLString(std::string &input, SQLParser::ParsingData &data)
 {
-    std::ifstream file(data.GetFileName());
-    if (!file.is_open())
-    {
-        data.LastParsingError = "Failed to open file.";
-        return false;
-    }
-
-    std::stringstream buffer;
-    buffer << file.rdbuf();
-    std::string input = buffer.str();
-
-
     auto iter = input.begin();
     auto end = input.end();
 
@@ -130,4 +119,19 @@ bool ParseSQLFile(SQLParser::ParsingData &data)
     }
 
     return true;
+}
+
+bool ParseSQLFile(SQLParser::ParsingData &data)
+{
+    std::ifstream file(data.GetFileName());
+    if (!file.is_open())
+    {
+        data.LastParsingError = "Failed to open file.";
+        return false;
+    }
+
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    std::string input = buffer.str();
+    return ParseSQLString(input, data);
 }

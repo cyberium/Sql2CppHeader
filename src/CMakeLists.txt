@@ -1,20 +1,5 @@
-set (LIB_SRC
-    main.cpp
-    HeaderGenerator.cpp
-    HeaderGenerator.h
-    SQLParserDefinitions.h
-    SQLParserDefinitions.cpp
-    TypeDefinitions.h
-    TypeDefinitions.cpp
-)
+# Find Boost again to ensure all the variables are available (because previous time it was found in a subdirectory)
+find_package(Boost REQUIRED COMPONENTS ${Boost_REQUIRED_COMPONENTS} QUIET)
 
-
-add_executable( ${PROJECT_NAME} ${LIB_SRC} )
-
-target_link_libraries( ${PROJECT_NAME}
-    PUBLIC ${Boost_LIBRARIES}
-)
-
-target_include_directories( ${PROJECT_NAME}
-    PUBLIC ${Boost_INCLUDE_DIRS}
-)
+add_subdirectory(parser)
+add_subdirectory(tests)

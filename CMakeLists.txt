@@ -24,6 +24,9 @@ endif()
 # add dependencies
 add_subdirectory(deps)
 
+# Enable testing
+enable_testing()
+
 # add source
 add_subdirectory(src)
 

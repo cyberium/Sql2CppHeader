@@ -29,4 +29,5 @@ private:
 
 } // namespace SQLParser
 
-bool ParseSQLFile(SQLParser::ParsingData& data);
+bool ParseSQLString(std::string &input, SQLParser::ParsingData &data);
+bool ParseSQLFile(SQLParser::ParsingData &data);

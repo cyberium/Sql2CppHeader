@@ -19,8 +19,11 @@ if (POLICY CMP0074)
   cmake_policy(SET CMP0074 NEW)
 endif()
 
+# Define boost required components and make this variable available to other CMakeLists
+set(Boost_REQUIRED_COMPONENTS system program_options thread regex serialization filesystem unit_test_framework CACHE INTERNAL "")
+
 # Find needed packages and if necessery abort if something important is missing
-find_package(Boost REQUIRED COMPONENTS system program_options thread regex serialization filesystem)
+find_package(Boost REQUIRED COMPONENTS ${Boost_REQUIRED_COMPONENTS})
 
 if(NOT Boost_FOUND AND (BUILD_GAME_SERVER OR BUILD_LOGIN_SERVER))
   message(STATUS "BOOST_ROOT = $ENV{BOOST_ROOT}")
@@ -40,7 +43,3 @@ endif()
 
 # Display Boost version
 message(STATUS "Found Boost version: ${Boost_VERSION}")
-
-# Make available to other CMakeLists
-set(Boost_LIBRARIES "${Boost_LIBRARIES}" CACHE INTERNAL "")
-set(Boost_INCLUDE_DIRS "${Boost_INCLUDE_DIRS}" CACHE INTERNAL "")

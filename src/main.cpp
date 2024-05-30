@@ -6,7 +6,7 @@
 
 struct ProgramOptions
 {
-    std::string inputFile = "mangos.sql";  // Default input file
+    std::string inputFile = "";  // No default input file
     std::string outputFile = "ParsedTables.h";  // Default output file
     bool showHelp = false;
     bool verbose = false;
@@ -67,6 +67,13 @@ bool parseArguments(int argc, char* argv[], ProgramOptions& options)
             return false;
         }
     }
+
+    if (options.inputFile.empty())
+    {
+        std::cerr << "Error: No input file specified" << std::endl;
+        return false;
+    }
+
     return true;
 }
 

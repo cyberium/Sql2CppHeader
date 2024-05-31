@@ -6,7 +6,6 @@ on:
             - main
 
 env:
-    # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
     BUILD_TYPE: Release
     BOOST_TOOLSET: "msvc"
     BOOST_VERSION: "1.84.0"
@@ -15,44 +14,150 @@ env:
 jobs:
     build:
         runs-on: windows-2022
+        permissions:
+            contents: write
 
         steps:
             - name: Checkout code
-              uses: actions/checkout@v2
+              uses: actions/checkout@v4
+              with:
+                fetch-depth: 1
+                fetch-tags: true
+
+            - name: Determine new version
+              id: determine_version
+              shell: pwsh
+              run: |
+                git fetch --tags
+                try
+                {
+                    $LAST_TAG = $(git describe --tags $(git rev-list --tags --max-count=1) 2>$null)
+                }
+                catch
+                {
+                    $LAST_TAG = "none"
+                    $LAST_EXIT_CODE = $?
+                }
+
+                if (-not $LAST_TAG)
+                {
+                    $LAST_TAG = "none"
+                }
+                Write-Host "Last tag: $LAST_TAG"
+
+                $prerelease = $true
+
+                if ("${{ github.event.head_commit.message }}" -match "\[(RELEASE|MAJOR)\]")
+                {
+                    $releaseType = $matches[1]
+                    echo "prerelease=false" >> $env:GITHUB_ENV
+                }
+                else
+                {
+                    echo "prerelease=true" >> $env:GITHUB_ENV
+                }
+
+                if ($LAST_TAG -eq "none")
+                {
+                    if ($releaseType -eq "RELEASE")
+                    {
+                        $MAJOR = 1
+                        $MEDIUM = 0
+                        $MINOR = 0
+                    }
+                    elseif ($releaseType -eq "MAJOR")
+                    {
+                        $MAJOR = 0
+                        $MEDIUM = 1
+                        $MINOR = 0
+                    }
+                    else
+                    {
+                        $MAJOR = 0
+                        $MEDIUM = 0
+                        $MINOR = 1
+                    }
+                }
+                else
+                {
+                    $MAJOR = [int]($LAST_TAG.Split(".")[0].TrimStart("v"))
+                    $MEDIUM = [int]($LAST_TAG.Split(".")[1])
+                    $MINOR = [int]($LAST_TAG.Split(".")[2])
+
+                    if ($releaseType -eq "RELEASE")
+                    {
+                        $MAJOR++
+                        $MEDIUM = 0
+                        $MINOR = 0
+                    }
+                    elseif ($releaseType -eq "MAJOR")
+                    {
+                        $MEDIUM++
+                        $MINOR = 0
+                    }
+                    else
+                    {
+                        $MINOR++
+                    }
+                }
+
+                $NEW_TAG = "v$MAJOR.$MEDIUM.$MINOR"
+                Write-Host "New tag: $NEW_TAG"
+                echo "tag=$NEW_TAG" >> $env:GITHUB_ENV
+
+                # Extract title if exists
+                $TITLE = "Automated Release"
+                $customTitleMatch = "${{ github.event.head_commit.message }}" -match "\[(RELEASE|MAJOR)\](.*)$"
+                if ($customTitleMatch)
+                {
+                    $CUSTOM_TITLE = $matches[2].Trim()
+                    if (-not [string]::IsNullOrWhiteSpace($CUSTOM_TITLE))
+                    {
+                        $TITLE = $CUSTOM_TITLE
+                    }
+                }
+                echo "title=$TITLE" >> $env:GITHUB_ENV
+
+                if ($LAST_EXIT_CODE -ne 0)
+                {
+                    exit 0
+                }
 
             - name: Install Boost
               uses: MarkusJx/install-boost@v2.4.5
               id: install-boost
               with:
-                # REQUIRED: Specify the required boost version
-                # A list of supported versions can be found here:
-                # https://github.com/MarkusJx/prebuilt-boost/blob/main/versions-manifest.json
-                boost_version: ${{env.BOOST_VERSION}}
-                # OPTIONAL: Specify a platform version
-                platform_version: ${{env.BOOST_PLATFORM_VERSION}}
-                # OPTIONAL: Specify a toolset
-                toolset: ${{env.BOOST_TOOLSET}}
-                # NOTE: If a boost version matching all requirements cannot be found,
-                # this build step will fail
+                boost_version: ${{ env.BOOST_VERSION }}
+                platform_version: ${{ env.BOOST_PLATFORM_VERSION }}
+                toolset: ${{ env.BOOST_TOOLSET }}
 
-            - name: Get specific version CMake, v3.28.0
-              uses: lukka/get-cmake@v3.28.0
+            - name: Get specific version of CMake
+              uses: lukka/get-cmake@latest
+              with:
+                cmakeVersion: '3.28.0'
 
             - name: Configure CMake
               env:
                   BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
-              run: cmake -Bbuild -A x64
+              run: cmake -DBoost_NO_WARN_NEW_VERSIONS=1 -Bbuild -A x64
 
             - name: Build application
-              run: cmake --build build --config ${{env.BUILD_TYPE}}
+              run: cmake --build build --config ${{ env.BUILD_TYPE }}
 
             - name: Run tests
               run: |
                 cd build
-                ctest -C Release --output-on-failure
+                ctest -C ${{ env.BUILD_TYPE }} --output-on-failure
 
-            - name: Publish artifacts
-              uses: actions/upload-artifact@v2
+            - name: Get Current Date
+              id: date
+              run: echo "date=$(Get-Date -Format 'yyyy-MM-dd')" >> $env:GITHUB_ENV
+
+            - name: Create and push tag
+              uses: softprops/action-gh-release@v2
               with:
-                    name: Application
-                    path: build/src/parser/Release/Sql2CppHeader.exe
+                files: build/src/parser/Release/Sql2CppHeader.exe
+                tag_name: ${{ env.tag }}
+                prerelease: ${{ env.prerelease }}
+                name: "${{ env.title }} (${{ env.date }}) - ${{ env.tag }}"
+                token: ${{ secrets.GITHUB_TOKEN }}

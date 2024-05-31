@@ -1,0 +1,58 @@
+name: Windows Build
+
+on:
+    push:
+        branches:
+            - main
+
+env:
+    # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+    BUILD_TYPE: Release
+    BOOST_TOOLSET: "msvc"
+    BOOST_VERSION: "1.84.0"
+    BOOST_PLATFORM_VERSION: "2022"
+
+jobs:
+    build:
+        runs-on: windows-2022
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v2
+
+            - name: Install Boost
+              uses: MarkusJx/install-boost@v2.4.5
+              id: install-boost
+              with:
+                # REQUIRED: Specify the required boost version
+                # A list of supported versions can be found here:
+                # https://github.com/MarkusJx/prebuilt-boost/blob/main/versions-manifest.json
+                boost_version: ${{env.BOOST_VERSION}}
+                # OPTIONAL: Specify a platform version
+                platform_version: ${{env.BOOST_PLATFORM_VERSION}}
+                # OPTIONAL: Specify a toolset
+                toolset: ${{env.BOOST_TOOLSET}}
+                # NOTE: If a boost version matching all requirements cannot be found,
+                # this build step will fail
+
+            - name: Get specific version CMake, v3.28.0
+              uses: lukka/get-cmake@v3.28.0
+
+            - name: Configure CMake
+              env:
+                  BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
+              run: cmake -Bbuild -A x64
+
+            - name: Build application
+              run: cmake --build build --config ${{env.BUILD_TYPE}}
+
+            - name: Run tests
+              run: |
+                cd build
+                ctest -C Release --output-on-failure
+
+            - name: Publish artifacts
+              uses: actions/upload-artifact@v2
+              with:
+                    name: Application
+                    path: build/src/parser/Release/Sql2CppHeader.exe

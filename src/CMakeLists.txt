@@ -2,4 +2,8 @@
 find_package(Boost REQUIRED COMPONENTS ${Boost_REQUIRED_COMPONENTS} QUIET)
 
 add_subdirectory(parser)
-add_subdirectory(tests)
+
+# Add the tests subdirectory only if tests are not disabled
+if(NOT DISABLE_TESTS)
+    add_subdirectory(tests)
+endif()

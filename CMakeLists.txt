@@ -6,6 +6,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
+# Disable tests if need
+option(DISABLE_TESTS "Disable generation of tests" OFF)
+
 # parralel build settings
 if(MSVC)
   # Enable parrallel build for msvc
@@ -24,8 +27,10 @@ endif()
 # add dependencies
 add_subdirectory(deps)
 
-# Enable testing
-enable_testing()
+# Enable testing if DISABLE_TESTS option is OFF
+if(NOT DISABLE_TESTS)
+    enable_testing()
+endif()
 
 # add source
 add_subdirectory(src)

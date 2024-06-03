@@ -27,12 +27,18 @@ A C++ application that uses Boost.Spirit X3 to parse SQL files and extract table
 
 ## Building the Project
 
-1. **Run CMake and build:**
+**Run CMake and build:**
 
-    ```sh
-    cmake -H. -Bbuild
-    cmake --build build --config Release
-    ```
+```sh
+cmake -H. -Bbuild [-DDISABLE_TESTS=ON]
+cmake --build build --config Release
+```
+
+**Build options:**
+
+`[-DDISABLE_TESTS=ON]` use this only if you want to disable testing.
+
+`-H.` option is not mandatory if you are in root folder, else `-H` should be followed by source folder. Please refer to cmake documentation.
 
 ## Usage
 
